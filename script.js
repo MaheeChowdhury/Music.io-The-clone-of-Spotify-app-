@@ -19,27 +19,12 @@ function secondsToMinutesSeconds(seconds) {
 
 async function getSongs(folder) {
     currFolder = folder;
-    let a = await fetch(`http://127.0.0.1:5500/${folder}/`)
-    let response = await a.text();
-    let div = document.createElement("div")
-    div.innerHTML = response;
-    let as = div.getElementsByTagName("a")
-    songs = []
-    for (let index = 0; index < as.length; index++) {
-        const element = as[index];
-        if (element.href.endsWith(".preview")) {
-            const path = element.getAttribute("href")
-                .replace(/^\/\//, "/")
-                .replace(/\.preview$/, "");
-            if (!/\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(path)) {
-                continue;
-            }
-            songs.push(new URL(path, window.location.href).href.split(`/${folder}/`)[1]);
-        }
-    }
 
+    // Instead of parsing a Live Server directory listing (which doesn't exist on Vercel),
+    // fetch the songs.json manifest that lives inside this album folder.
+    let a = await fetch(`/${folder}/songs.json`)
+    songs = await a.json();
 
-    
     //show all the songs in the playlist
     let songUL = document.querySelector(".songList").getElementsByTagName("ul")[0]
     songUL.innerHTML = ""
@@ -80,35 +65,27 @@ const playMusic = (track, pause=false) => {
 
 //display att the albums on the page
 async function displayAlbums() {
-    let a = await fetch(`http://127.0.0.1:5500/songs/`)
-    let response = await a.text();
-    let div = document.createElement("div")
-    div.innerHTML = response;
-    let anchors = div.getElementsByTagName("a")
+    // Instead of parsing a Live Server directory listing, fetch the albums.json manifest
+    let a = await fetch(`/songs/albums.json`)
+    let albums = await a.json();
     let cardContainer = document.querySelector(".cardContainer")
-    let array = Array.from(anchors)
-        for(let index = 0; index < array.length; index++) {
-            const element = array[index]
-        //.............THIS PROTION OF CODE FIXES OF ALBUM WHICH WERE NOT LOADING PREVIOUSLY...........
-        const pathParts = element.getAttribute("href").split("/").filter(Boolean)
-        if(pathParts.length === 2 && pathParts[0] === "songs" && pathParts[1] !== "..") {
-        //.....................................................................................    
-            let folder = pathParts[1]
-            //Get the metadata of the folder
-            let a = await fetch(`http://127.0.0.1:5500/songs/${folder}/info.json`)
-            let response = await a.json();
-            console.log(response)
-            cardContainer.innerHTML = cardContainer.innerHTML + `<div data-folder="${folder}" class="card">
-                        <div class="play">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none" stroke="#141B34" fill="#000" stroke-width="1.5" stroke-linejoin="round">
-    <path d="M18.8906 12.846C18.5371 14.189 16.8667 15.138 13.5257 17.0361C10.296 18.8709 8.6812 19.7884 7.37983 19.4196C6.8418 19.2671 6.35159 18.9776 5.95624 18.5787C5 17.6139 5 15.7426 5 12C5 8.2574 5 6.3861 5.95624 5.42132C6.35159 5.02245 6.8418 4.73288 7.37983 4.58042C8.6812 4.21165 10.296 5.12907 13.5257 6.96393C16.8667 8.86197 18.5371 9.811 18.8906 11.154C19.0365 11.7084 19.0365 12.2916 18.8906 12.846Z"></path>
+    cardContainer.innerHTML = ""
+
+    for (const folder of albums) {
+        //Get the metadata of the folder
+        let a = await fetch(`/songs/${folder}/info.json`)
+        let response = await a.json();
+        console.log(response)
+        cardContainer.innerHTML = cardContainer.innerHTML + `<div data-folder="${folder}" class="card">
+                    <div class="play">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none" stroke="#141B34" fill="#000" stroke-width="1.5" stroke-linejoin="round">
+<path d="M18.8906 12.846C18.5371 14.189 16.8667 15.138 13.5257 17.0361C10.296 18.8709 8.6812 19.7884 7.37983 19.4196C6.8418 19.2671 6.35159 18.9776 5.95624 18.5787C5 17.6139 5 15.7426 5 12C5 8.2574 5 6.3861 5.95624 5.42132C6.35159 5.02245 6.8418 4.73288 7.37983 4.58042C8.6812 4.21165 10.296 5.12907 13.5257 6.96393C16.8667 8.86197 18.5371 9.811 18.8906 11.154C19.0365 11.7084 19.0365 12.2916 18.8906 12.846Z"></path>
 </svg>
 </div>
-                       <img src="/songs/${folder}/cover.jpg" alt="">
-                       <h2>${response.title}</h2>
-                              <p>${response.Description}</p>
-                    </div>`
-        }
+                   <img src="/songs/${folder}/cover.jpg" alt="">
+                   <h2>${response.title}</h2>
+                          <p>${response.Description}</p>
+                </div>`
     }
 
        //load the playlist whenever card is clicked
@@ -219,7 +196,3 @@ async function main() {
 }
 
 main()
-
-
- 
-    // // console.log(anchors);
